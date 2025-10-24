@@ -20,7 +20,6 @@ public class FairyRingHelper
     private final ClientThread clientThread;
     private final FairyRingHotkeysConfig cfg;
 
-    // In-memory cache (used immediately after detection; does not modify config)
     private DetectResult cached;
 
     public void teleportToCode(String code)
@@ -38,21 +37,21 @@ public class FairyRingHelper
                 return;
             }
 
-            // Spin each dial to target letter
+            // Spin each dial (log-only for now to keep this build compatible with your client API)
             spinToLetter(ids, ids.leftLabel,  ids.leftInc,  ids.leftDec,  norm.charAt(0));
             spinToLetter(ids, ids.midLabel,   ids.midInc,   ids.midDec,   norm.charAt(1));
             spinToLetter(ids, ids.rightLabel, ids.rightInc, ids.rightDec, norm.charAt(2));
 
-            // Click Teleport (use first menu action index 0)
             Widget t = client.getWidget(ids.groupId, ids.teleportBtn);
-            if (t != null) t.interact(0);
+            if (t != null)
+            {
+                info("Fairy Ring Hotkeys: would click Teleport at " + ids.groupId + ":" + ids.teleportBtn);
+            }
         });
     }
 
-    // Resolve IDs from config or auto-detect (and cache)
     private DetectResult getIds()
     {
-        // Manual config present?
         if (cfg.groupId() >= 0 && cfg.leftLabel() >= 0 && cfg.midLabel() >= 0 && cfg.rightLabel() >= 0
                 && cfg.leftInc() >= 0 && cfg.leftDec() >= 0 && cfg.midInc() >= 0 && cfg.midDec() >= 0
                 && cfg.rightInc() >= 0 && cfg.rightDec() >= 0 && cfg.teleportBtn() >= 0)
@@ -64,13 +63,9 @@ public class FairyRingHelper
                     cfg.teleportBtn());
         }
 
-        // Cached from a previous detection run?
         if (cached != null) return cached;
-
         if (!cfg.autoDetect()) return null;
 
-        // Try to auto-detect: look over widget groups for a visible “Teleport” button
-        // with sibling buttons that have a “Rotate” action and single-letter labels.
         List<DetectResult> candidates = new ArrayList<>();
         for (int group = 0; group < 1000; group++)
         {
@@ -94,10 +89,10 @@ public class FairyRingHelper
         }
 
         cached = candidates.get(0);
-        info("Fairy Ring Hotkeys: auto-detected widget IDs → group " + cached.groupId
+        info("Auto-detected IDs → group " + cached.groupId
                 + " | labels [" + cached.leftLabel + "," + cached.midLabel + "," + cached.rightLabel + "]"
                 + " | teleport child " + cached.teleportBtn
-                + ". You can paste these into config if you want to save them.");
+                + ". Paste these into config to save them (Advanced — Manual Widget IDs).");
         return cached;
     }
 
@@ -173,32 +168,19 @@ public class FairyRingHelper
     private void spinToLetter(DetectResult ids, int labelChild, int incChild, int decChild, char target)
     {
         final char T = Character.toUpperCase(target);
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 2; i++) // keep it light; log-only for now
         {
             Widget label = client.getWidget(ids.groupId, labelChild);
-            if (label != null)
-            {
-                String txt = safe(label.getText());
-                if (!txt.isEmpty() && Character.toUpperCase(txt.charAt(0)) == T) return;
-            }
-
-            // Try both rotate buttons; use first menu action index (0)
-            Widget a = client.getWidget(ids.groupId, incChild);
-            Widget b = client.getWidget(ids.groupId, decChild);
-            boolean acted = false;
-            if (a != null) acted |= a.interact(0);
-            if (b != null) acted |= b.interact(0);
-            if (!acted) break;
+            String txt = (label != null) ? safe(label.getText()) : "";
+            info("Would rotate dial at " + ids.groupId + ":" + labelChild + " towards '" + T + "' (currently '" + txt + "') via " +
+                    ids.groupId + ":" + incChild + " and " + ids.groupId + ":" + decChild);
         }
     }
 
     private void info(String msg)
     {
-        try {
-            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, null);
-        } catch (Throwable t) {
-            log.info(msg);
-        }
+        try { client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, null); }
+        catch (Throwable t) { log.info(msg); }
     }
 
     private static String safe(String s) { return s == null ? "" : s; }
