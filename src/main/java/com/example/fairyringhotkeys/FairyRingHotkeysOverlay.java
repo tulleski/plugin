@@ -1,3 +1,6 @@
+import net.runelite.client.ui.overlay.components.TitleComponent;
+import net.runelite.client.ui.overlay.components.LineComponent;
+
 package com.example.fairyringhotkeys;
 
 import lombok.RequiredArgsConstructor;
