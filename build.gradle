@@ -8,8 +8,16 @@ repositories {
 }
 
 dependencies {
+    // RuneLite client API
     compileOnly group: 'net.runelite', name: 'client', version: '1.10.25'
     annotationProcessor group: 'net.runelite', name: 'client', version: '1.10.25'
+
+    // Lombok (required for @Slf4j, @RequiredArgsConstructor used in the code)
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+    // SLF4J API so logging annotation resolves cleanly in compile
+    compileOnly 'org.slf4j:slf4j-api:1.7.36'
 }
 
 java {
