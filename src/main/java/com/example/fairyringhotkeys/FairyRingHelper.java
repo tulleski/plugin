@@ -11,7 +11,6 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 @Slf4j
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
@@ -44,9 +43,9 @@ public class FairyRingHelper
             spinToLetter(ids, ids.midLabel,   ids.midInc,   ids.midDec,   norm.charAt(1));
             spinToLetter(ids, ids.rightLabel, ids.rightInc, ids.rightDec, norm.charAt(2));
 
-            // Click Teleport
+            // Click Teleport (use first menu action index 0)
             Widget t = client.getWidget(ids.groupId, ids.teleportBtn);
-            if (t != null) t.interact("Teleport");
+            if (t != null) t.interact(0);
         });
     }
 
@@ -70,12 +69,11 @@ public class FairyRingHelper
 
         if (!cfg.autoDetect()) return null;
 
-        // Try to auto-detect: look over all widget groups for a visible "Teleport" button with siblings
-        // that have "Rotate" actions and single-letter labels.
+        // Try to auto-detect: look over widget groups for a visible “Teleport” button
+        // with sibling buttons that have a “Rotate” action and single-letter labels.
         List<DetectResult> candidates = new ArrayList<>();
         for (int group = 0; group < 1000; group++)
         {
-            // Pull a handful of likely child indices (0..200); harmless if group doesn't exist
             for (int child = 0; child < 200; child++)
             {
                 Widget w = client.getWidget(group, child);
@@ -84,12 +82,8 @@ public class FairyRingHelper
                 String text = safe(w.getText());
                 if (!text.equalsIgnoreCase("Teleport")) continue;
 
-                // Found a teleport button; try to assemble the rest from same group
                 DetectResult res = scanGroup(group);
-                if (res != null)
-                {
-                    candidates.add(res);
-                }
+                if (res != null) candidates.add(res);
             }
         }
 
@@ -99,13 +93,11 @@ public class FairyRingHelper
             return null;
         }
 
-        // Pick the first candidate (usually correct)
         cached = candidates.get(0);
         info("Fairy Ring Hotkeys: auto-detected widget IDs → group " + cached.groupId
                 + " | labels [" + cached.leftLabel + "," + cached.midLabel + "," + cached.rightLabel + "]"
                 + " | teleport child " + cached.teleportBtn
                 + ". You can paste these into config if you want to save them.");
-
         return cached;
     }
 
@@ -123,13 +115,11 @@ public class FairyRingHelper
             String text = safe(w.getText());
             if (text.equalsIgnoreCase("Teleport")) teleportChild = child;
 
-            // Heuristic: letter labels are single A–Z strings
             if (text.length() == 1 && Character.isLetter(text.charAt(0)))
             {
                 labelChildren.add(child);
             }
 
-            // Heuristic: dial buttons have an action named "Rotate"
             String[] actions = w.getActions();
             if (actions != null)
             {
@@ -144,12 +134,8 @@ public class FairyRingHelper
             }
         }
 
-        if (teleportChild == null || labelChildren.size() < 3 || rotateChildren.size() < 3)
-        {
-            return null;
-        }
+        if (teleportChild == null || labelChildren.size() < 3 || rotateChildren.size() < 3) return null;
 
-        // Pick three distinct labels; assume left/mid/right are the first three by child index
         labelChildren.sort(Integer::compareTo);
         rotateChildren.sort(Integer::compareTo);
 
@@ -157,16 +143,11 @@ public class FairyRingHelper
         int midLabel   = labelChildren.get(1);
         int rightLabel = labelChildren.get(2);
 
-        // For each label, pick two closest rotate buttons by child index (best-effort heuristic)
-        // This is approximate but works because fairy dial controls are grouped.
         int[] leftRot  = nearestTwo(rotateChildren, leftLabel);
         int[] midRot   = nearestTwo(rotateChildren, midLabel);
         int[] rightRot = nearestTwo(rotateChildren, rightLabel);
-
-        // If any are missing, bail
         if (leftRot == null || midRot == null || rightRot == null) return null;
 
-        // We don't know which is + or -, but our spin method tries both directions.
         return new DetectResult(group,
                 leftLabel,  leftRot[0],  leftRot[1],
                 midLabel,   midRot[0],   midRot[1],
@@ -198,18 +179,15 @@ public class FairyRingHelper
             if (label != null)
             {
                 String txt = safe(label.getText());
-                if (!txt.isEmpty() && Character.toUpperCase(txt.charAt(0)) == T)
-                {
-                    return;
-                }
+                if (!txt.isEmpty() && Character.toUpperCase(txt.charAt(0)) == T) return;
             }
 
-            // Try both “rotate” buttons; order doesn’t matter
+            // Try both rotate buttons; use first menu action index (0)
             Widget a = client.getWidget(ids.groupId, incChild);
             Widget b = client.getWidget(ids.groupId, decChild);
             boolean acted = false;
-            if (a != null) acted |= a.interact("Rotate");
-            if (b != null) acted |= b.interact("Rotate");
+            if (a != null) acted |= a.interact(0);
+            if (b != null) acted |= b.interact(0);
             if (!acted) break;
         }
     }
