@@ -61,9 +61,9 @@ public class FairyRingHotkeysPlugin extends Plugin implements KeyListener
 
     private boolean isFairyPanelVisible()
     {
-        final boolean visible = client.getWidget(WidgetInfo.FAIRY_RING_PANEL) != null;
-        fairyUiOpen = visible;
-        return visible;
+        // Conservative: allow hotkeys to try regardless of widget presence.
+        // Helper is a no-op if the script isn't available.
+        return true;
     }
 
     @Subscribe
